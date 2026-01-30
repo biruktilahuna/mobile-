@@ -2,7 +2,7 @@ import * as FileSystem from "expo-file-system";
 import * as ImagePicker from "expo-image-picker";
 
 const IMGBB_API_KEY = process.env.EXPO_PUBLIC_IMGBB_API_KEY!;
-console.log("IMGBB KEY:", IMGBB_API_KEY);
+// console.log("IMGBB KEY:", IMGBB_API_KEY);
 
 async function uriToBase64(uri: string) {
   return await FileSystem.readAsStringAsync(uri, {
@@ -20,7 +20,7 @@ export type ImgBBUploadResult = {
 
 // Upload image to ImgBB with a 6-month expiration
 export async function uploadImageImgBB(
-  result: ImagePicker.ImagePickerResult
+  result: ImagePicker.ImagePickerResult,
 ): Promise<ImgBBUploadResult | null> {
   if (result?.canceled || !result?.assets?.length) return null;
 
@@ -55,7 +55,7 @@ export async function uploadImageImgBB(
       json = JSON.parse(text);
     } catch {
       throw new Error(
-        "ImgBB returned non-JSON response. Check request formatting."
+        "ImgBB returned non-JSON response. Check request formatting.",
       );
     }
 

@@ -57,11 +57,13 @@ interface orders {
   $updatedAt: string;
 }
 interface carts {
+  [x: string]: string;
   $id: string;
   Pname: string;
   ProductNo: number;
   image: string;
   orderId: string;
+  productId: string;
   $createdAt: string;
   price: number;
 }

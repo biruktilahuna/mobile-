@@ -1,5 +1,6 @@
 // optional for detecting file type
 import {} from "appwrite";
+
 import {
   Account,
   Client,
@@ -26,11 +27,11 @@ const client = new Client()
   .setEndpoint("https://fra.cloud.appwrite.io/v1") // Replace with your Appwrite endpoint
   .setProject(process.env.EXPO_PUBLIC_APPWRITE_PROJECT_ID!) // Replace with your project ID
   .setPlatform("com.birukweb.shop");
-const account = new Account(client);
+export const account = new Account(client);
 const database = new Databases(client);
 const storage = new Storage(client);
 
-// -----------------------------------------------------------------------------------------------getAllcategrory---------------------------
+// ----------------------------------------------------------------------------------getAllcategrory---------------------------
 
 export const getAllcategrory = async (): Promise<
   savedcatagory[] | undefined
@@ -67,6 +68,7 @@ export const savinCategori = async (name: string) => {
     throw error;
   }
 };
+
 // -------------------------------------------------------------------------------------------updathing category----------------------------------------------------------->
 
 export const updathingCategory = async (name: string, newname: string) => {
@@ -84,7 +86,7 @@ export const updathingCategory = async (name: string, newname: string) => {
         existingDoc.$id,
         {
           name: newname,
-        }
+        },
       );
 
       console.log("Updated category name to:", newname);
@@ -123,7 +125,7 @@ export const deleteCategory = async (id: string) => {
 // ---------------------------------------------------------------------------------------------products--------------------------------------------------------------------->
 
 export const getProducts = async (
-  categoryId: string
+  categoryId: string,
 ): Promise<Product[] | undefined> => {
   try {
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID5, [
@@ -161,7 +163,7 @@ export const checkProducts = async (categoryId: string) => {
 // ----------------------------------------------------------------------------------------------ading products-------------------------------------------------------------->
 
 export const addProduct = async (
-  product: Omit<Product, "id" | "createdAt">
+  product: Omit<Product, "id" | "createdAt">,
 ): Promise<Product | undefined> => {
   try {
     const result = await database.createDocument(
@@ -170,7 +172,7 @@ export const addProduct = async (
       ID.unique(),
       {
         ...product,
-      }
+      },
     );
     return result as unknown as Product; // ✅ make sure we RETURN here
   } catch (error) {
@@ -183,7 +185,7 @@ export const addProduct = async (
 
 export const updateProduct = async (
   productId: string,
-  updates: Partial<Omit<Product, "$id" | "$createdAt">> // 🔹 only allow updatable fields
+  updates: Partial<Omit<Product, "$id" | "$createdAt">>, // 🔹 only allow updatable fields
 ): Promise<Product | undefined> => {
   try {
     const result = await database.updateDocument(
@@ -193,7 +195,7 @@ export const updateProduct = async (
       {
         ...updates,
         // optional: track last update
-      }
+      },
     );
 
     return result as unknown as Product;
@@ -218,7 +220,7 @@ export const deleteProduct = async (productId: string): Promise<boolean> => {
 
 export const updatePage = async (
   pagesId: string,
-  updates: Partial<Omit<Product, "$id" | "$createdAt">> // 🔹 only allow updatable fields
+  updates: Partial<Omit<Product, "$id" | "$createdAt">>, // 🔹 only allow updatable fields
 ): Promise<Product | undefined> => {
   try {
     const result = await database.updateDocument(
@@ -228,7 +230,7 @@ export const updatePage = async (
       {
         ...updates,
         // optional: track last update
-      }
+      },
     );
 
     return result as unknown as Product;
@@ -241,7 +243,7 @@ export const updatePage = async (
 // ---------------------------------------------------------------------------------------------------------get the page---------------------------------------------------------------------------------------->
 
 export const getPage = async (
-  categoryId: string
+  categoryId: string,
 ): Promise<page[] | undefined> => {
   try {
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID6, [
@@ -256,7 +258,7 @@ export const getPage = async (
 };
 // ------------------------------------------------------------------------------------------------------getorders--------------------------------------->
 export const getorders = async (
-  status: string
+  status: string,
 ): Promise<orders[] | undefined> => {
   try {
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID3, [
@@ -272,7 +274,7 @@ export const getorders = async (
 // ------------------------------------------------------------------------------------------------get order with id -------------------------------------->
 
 export const getordersid = async (
-  orid: string
+  orid: string,
 ): Promise<orders[] | undefined> => {
   try {
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID3, [
@@ -289,7 +291,7 @@ export const getordersid = async (
 
 export const updateOrderStatus = async (
   orid: string,
-  newStatus: string
+  newStatus: string,
 ): Promise<any | undefined> => {
   try {
     const result = await database.updateDocument(
@@ -298,7 +300,7 @@ export const updateOrderStatus = async (
       orid, // document ID
       {
         status: newStatus, // only update this field
-      }
+      },
     );
 
     return result;
@@ -307,9 +309,57 @@ export const updateOrderStatus = async (
     return undefined;
   }
 };
+// ------------------------------------------------------------------------------------------------deleting osders ------------------------------------------------------>
+
+export const deleteOrder = async (orid: string): Promise<boolean> => {
+  try {
+    // 1. Get all products that belong to this order
+    const products = await database.listDocuments(DATABASE_ID, COLLECTION_ID7, [
+      Query.equal("orderId", orid),
+    ]);
+
+    // 2. Delete each product
+    const deleteProductsPromises = products.documents.map((product) =>
+      database.deleteDocument(DATABASE_ID, COLLECTION_ID7, product.$id),
+    );
+
+    await Promise.all(deleteProductsPromises);
+
+    // 3. Delete the parent order
+    await database.deleteDocument(DATABASE_ID, COLLECTION_ID3, orid);
+
+    return true;
+  } catch (error) {
+    console.log("Error deleting order and products:", error);
+    return false;
+  }
+};
+
+// -----------------------------------------------------------------------------------------the stock decriment------------------------>
+export const decrementProductStock = async (
+  productId: string,
+  quantity: number,
+) => {
+  try {
+    const product = await database.getDocument(
+      DATABASE_ID,
+      COLLECTION_ID5,
+      productId,
+    );
+
+    const newStock = product.stock - quantity;
+
+    await database.updateDocument(DATABASE_ID, COLLECTION_ID5, productId, {
+      stock: newStock,
+    });
+  } catch (error) {
+    console.log("Error decrementing stock:", error);
+  }
+};
+
 // ------------------------------------------------------------------------------------------------------get cart ------------------------------------------>
 export const getcart = async (
-  odrderid: string
+  odrderid: string,
 ): Promise<carts[] | undefined> => {
   try {
     const result = await database.listDocuments(DATABASE_ID, COLLECTION_ID7, [
@@ -333,13 +383,13 @@ export const getProfile = async () => {
 export const updateProfileText = async (
   documentId: string,
   title: string,
-  welcomeText: string
+  welcomeText: string,
 ) => {
   return database.updateDocument(
     DATABASE_ID,
     PROFILE_COLLECTION_ID,
     documentId,
-    { title, welcomeText }
+    { title, welcomeText },
   );
 };
 
@@ -356,13 +406,13 @@ export const updateSocialAndLocation = async (
     longitude?: number;
     latitudeDelta?: number;
     longitudeDelta?: number;
-  }
+  },
 ) => {
   return database.updateDocument(
     DATABASE_ID,
     PROFILE_COLLECTION_ID,
     documentId,
-    payload
+    payload,
   );
 };
 // ------------------------------------------------------------------------------------------------------end----------------------------------------------------------->
@@ -413,53 +463,53 @@ export const updateSocialAndLocation = async (
 // ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 
 // Register a new user
-export const registerUser = async (
-  email: string,
-  password: string,
-  name: string
-) => {
-  try {
-    const user = await account.create(ID.unique(), email, password, name);
-    console.log("User registered:", user);
-    return user;
-  } catch (error) {
-    console.error("Registration error:", error);
-  }
-};
+// export const registerUser = async (
+//   email: string,
+//   password: string,
+//   name: string,
+// ) => {
+//   try {
+//     const user = await account.create(ID.unique(), email, password, name);
+//     console.log("User registered:", user);
+//     return user;
+//   } catch (error) {
+//     console.error("Registration error:", error);
+//   }
+// };
 
-// Login user
-export const loginUser = async (email: string, password: string) => {
-  try {
-    const session = await account.createEmailPasswordSession(email, password);
-    console.log("Logged in:", session);
-    return session;
-  } catch (error) {
-    console.error("Login error:", error);
-  }
-};
+// // Login user
+// export const loginUser = async (email: string, password: string) => {
+//   try {
+//     const session = await account.createEmailPasswordSession(email, password);
+//     console.log("Logged in:", session);
+//     return session;
+//   } catch (error) {
+//     console.error("Login error:", error);
+//   }
+// };
 
-// Get current user
-export const getCurrentUser = async () => {
-  try {
-    const user = await account.get();
-    console.log("Current user:", user);
-    return user;
-  } catch (error) {
-    console.error("Get user error:", error);
-  }
-};
+// // Get current user
+// export const getCurrentUser = async () => {
+//   try {
+//     const user = await account.get();
+//     console.log("Current user:", user);
+//     return user;
+//   } catch (error) {
+//     console.error("Get user error:", error);
+//   }
+// };
 
-// Logout user
-export const logoutUser = async () => {
-  try {
-    await account.deleteSession("current");
-    console.log("Logged out");
-  } catch (error) {
-    console.error("Logout error:", error);
-  }
-};
+// // Logout user
+// export const logoutUser = async () => {
+//   try {
+//     await account.deleteSession("current");
+//     console.log("Logged out");
+//   } catch (error) {
+//     console.error("Logout error:", error);
+//   }
+// };
 
-function unique(): string {
-  throw new Error("Function not implemented.");
-}
+// function unique(): string {
+//   throw new Error("Function not implemented.");
+// }
 // ------------------------------------------------------------------------------------ this should work -----------------------------------------

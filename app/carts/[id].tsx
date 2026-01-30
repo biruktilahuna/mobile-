@@ -1,5 +1,10 @@
 import Cartproduct from "@/components/cartproduct";
-import { getcart, getordersid, updateOrderStatus } from "@/services/appwrite";
+import {
+  decrementProductStock,
+  getcart,
+  getordersid,
+  updateOrderStatus,
+} from "@/services/appwrite";
 import useFetch from "@/services/useFetch";
 import * as Linking from "expo-linking";
 import { useLocalSearchParams } from "expo-router";
@@ -230,9 +235,30 @@ function Carts() {
                     key={status}
                     label={status.charAt(0).toUpperCase() + status.slice(1)}
                     active={isActive}
-                    onPress={() => {
-                      setLocalStatus(status); // instant highlight
-                      updateOrderStatus(id, status); // backend update
+                    onPress={async () => {
+                      const previousStatus = orders[0].status;
+
+                      setLocalStatus(status); // UI update
+
+                      // ✅ ONLY when transitioning to delivered
+                      if (
+                        status === "delivered" &&
+                        previousStatus !== "delivered"
+                      ) {
+                        for (const item of cart) {
+                          console.log(
+                            "Decrementing stock for:",
+                            item.productId,
+                          );
+                          console.log("Quantity to decrement:", item.ProductNo);
+                          await decrementProductStock(
+                            item.productId, // adjust key if different
+                            item.ProductNo,
+                          );
+                        }
+                      }
+
+                      await updateOrderStatus(id, status);
                     }}
                   />
                 );
